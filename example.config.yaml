@@ -1,0 +1,21 @@
+token: <telegram token>
+dir: logs
+record_types:
+  test1:
+    options:
+      - opt1
+      - opt2
+    comment: false
+  test2:
+    options:
+      - opt1
+      - opt2
+    comment: true
+  "no options":
+influx:
+  endpoint: <influxdb endpoint>
+  token: <influxdb token>
+  org: main
+  bucket: test
+file:
+  dir: logs
