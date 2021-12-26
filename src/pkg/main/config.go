@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/omrigan/logbot/pkg/bot"
 	"github.com/omrigan/logbot/pkg/storage"
 	"os"
 
@@ -14,8 +15,7 @@ type RecordType struct {
 
 type Config struct {
 	RecordTypes map[string]*RecordType `yaml:"record_types"`
-	Dir         string                 `yaml:"dir"`
-	Token       string                 `yaml:"token"`
+	Bot         *bot.BotConfig         `yaml:"bot"`
 	Influx      *storage.InfluxConfig  `yaml:"influx"`
 	File        *storage.FileConfig    `yaml:"file"`
 }

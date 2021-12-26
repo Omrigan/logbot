@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	bot2 "github.com/omrigan/logbot/pkg/bot"
 	"github.com/omrigan/logbot/pkg/storage"
 	"log"
 	"sort"
@@ -21,7 +22,7 @@ const (
 	TsExpected
 )
 
-func Markup(columns int, values []string) tgbotapi.ReplyKeyboardMarkup {
+func Markup(columns int, values []string) *tgbotapi.ReplyKeyboardMarkup {
 	var buttons [][]tgbotapi.KeyboardButton
 	var row []tgbotapi.KeyboardButton
 	var i int
@@ -38,10 +39,11 @@ out:
 		row = []tgbotapi.KeyboardButton{}
 	}
 	buttons = append(buttons, row)
-	return tgbotapi.NewReplyKeyboard(buttons...)
+	keyboard := tgbotapi.NewReplyKeyboard(buttons...)
+	return &keyboard
 }
 
-func ItemsMarkup(types map[string]*RecordType) tgbotapi.ReplyKeyboardMarkup {
+func ItemsMarkup(types map[string]*RecordType) *tgbotapi.ReplyKeyboardMarkup {
 	var values []string
 	for val := range types {
 		values = append(values, val)
@@ -50,15 +52,15 @@ func ItemsMarkup(types map[string]*RecordType) tgbotapi.ReplyKeyboardMarkup {
 	return Markup(2, append(values, "cancel"))
 }
 
-func OptionsMarkup(typ *RecordType) tgbotapi.ReplyKeyboardMarkup {
+func OptionsMarkup(typ *RecordType) *tgbotapi.ReplyKeyboardMarkup {
 	return Markup(3, append(typ.Options, "cancel"))
 }
 
-func TsMarkup() tgbotapi.ReplyKeyboardMarkup {
+func TsMarkup() *tgbotapi.ReplyKeyboardMarkup {
 	return Markup(2, []string{"done", "cancel"})
 }
 
-func CommentMarkup() tgbotapi.ReplyKeyboardMarkup {
+func CommentMarkup() *tgbotapi.ReplyKeyboardMarkup {
 	return Markup(2, []string{"skip", "cancel"})
 }
 
@@ -69,7 +71,7 @@ func main() {
 	}
 	cfgM, _ := yaml.Marshal(cfg)
 	log.Println(string(cfgM))
-	bot := NewBot(cfg)
+	bot := bot2.NewBot(cfg.Bot)
 
 	var storages []storage.Storage
 	if cfg.Influx != nil {
@@ -84,11 +86,17 @@ func main() {
 	state := IdleState
 	record := &storage.Record{}
 	var recType *RecordType
-	for update := range bot.chn {
-		reply := func(txt string, markup interface{}) {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, txt)
-			msg.ReplyMarkup = markup
-			bot.bot.Send(msg)
+	for  {
+		update, err := bot.Next()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		reply := func(txt string, markup *tgbotapi.ReplyKeyboardMarkup) {
+			err := bot.Send(update.Chat.ID, txt, markup)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 		toTSExpected := func() {
 			state = TsExpected
@@ -102,13 +110,7 @@ func main() {
 			state = OptionExpected
 			reply("option", OptionsMarkup(recType))
 		}
-		if update.Message == nil { // ignore any non-Message Updates
-			continue
-		}
-		if update.Message.Chat.UserName != "omrigan" {
-			continue
-		}
-		txt := strings.TrimSpace(update.Message.Text)
+		txt := strings.TrimSpace(update.Text)
 		if txt == "cancel" {
 			reply("ok", ItemsMarkup(cfg.RecordTypes))
 			state = IdleState
