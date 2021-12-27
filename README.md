@@ -3,6 +3,7 @@
 Supports writing to csv file or influxdb.
 
 ## Example
+```
 Oleg Vasilev, [12/26/21 10:21 PM]
 test1
 
@@ -30,3 +31,4 @@ item: test1
 param: opt1
 comment: ""
 ts: 2021-12-26T22:21:37.240956472+03:00
+```
